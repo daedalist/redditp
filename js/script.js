@@ -46,14 +46,17 @@ rp.photos = [];
 // maybe checkout http://engineeredweb.com/blog/09/12/preloading-images-jquery-and-javascript/ for implementing the old precache
 rp.cache = {};
 
-function reportError(errMessage) {
-    if (window.errorHandler && window.errorHandler.report) {
-        window.errorHandler.report(new Error(errMessage));
-    } else {
-        console.log('No error handler yet: ' + errMessage);
-    }
-    toastr.error(errMessage + ', please alert ubershmekel on <a href="https://github.com/ubershmekel/redditp/issues">github</a>');
-}
+<script>
+    window.onerror = function (msg, url, linenumber) {
+        var errMessage = msg + '\nURL: ' + url + '\nLine Number: ' + linenumber;
+        console.log('JavaScript Error: ' + errMessage);
+        
+        // Show user-friendly error message
+        $(function () {
+            toastr.error('An error occurred. Please check the console or report it on <a href="https://github.com/ubershmekel/redditp/issues">GitHub</a>.');
+        });
+    };
+</script>
 
 
 $(function () {
