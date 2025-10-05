@@ -1,17 +1,22 @@
+# Local development docker-compose file
+# Use: docker-compose -f docker-compose.local.yml up -d
+
 services:
   redditp:
+    # Build from local Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
     
-    container_name: redditp
+    container_name: redditp-local
     
-    # Port mapping - change as needed
+    # Port mapping for local access
     ports:
-      - "${PORT:-8080}:8080"
+      - "8080:8080"
     
+    # Environment variables
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=development
       - PORT=8080
     
     # Restart policy
@@ -29,5 +34,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "10m"
         max-file: "3"
+
+# No external networks needed for local development
