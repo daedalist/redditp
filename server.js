@@ -1,33 +1,33 @@
-// This node server is not required, you can use index.html directly off
-// the file system or a static host but you just have to use a question mark e.g.:
-// http://localhost:8080/index.html?/r/gifs
+// RedditP Node.js server with proper static file handling
 
 var http = require('http');
 var path = require('path');
-
 var express = require('express');
 
 var app = express();
 
 app.set('port', process.env.PORT || 8080);
 
-const publicFolder = [
+// CRITICAL: Static files MUST be registered BEFORE the catch-all route
+const publicFolders = [
     '.well-known',
     'css',
     'images',
     'js'
 ];
 
-for (let name of publicFolder) {
+// Serve static files - no special config needed, let Express handle it
+for (let name of publicFolders) {
     app.use('/' + name, express.static(path.join(__dirname, name)));
 }
 
-var server = http.createServer(app);
-
+// Catch-all route for the SPA - this MUST come AFTER static routes
 app.get('/*', function (req, res) {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+var server = http.createServer(app);
+
 server.listen(app.get('port'), function () {
-    console.log("Web server listening at: http://localhost:" + app.get('port'));
+    console.log("RedditP server listening at: http://localhost:" + app.get('port'));
 });

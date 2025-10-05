@@ -46,17 +46,15 @@ rp.photos = [];
 // maybe checkout http://engineeredweb.com/blog/09/12/preloading-images-jquery-and-javascript/ for implementing the old precache
 rp.cache = {};
 
-<script>
-    window.onerror = function (msg, url, linenumber) {
-        var errMessage = msg + '\nURL: ' + url + '\nLine Number: ' + linenumber;
-        console.log('JavaScript Error: ' + errMessage);
-        
-        // Show user-friendly error message
-        $(function () {
-            toastr.error('An error occurred. Please check the console or report it on <a href="https://github.com/ubershmekel/redditp/issues">GitHub</a>.');
-        });
-    };
-</script>
+window.onerror = function (msg, url, linenumber) {
+    var errMessage = msg + '\nURL: ' + url + '\nLine Number: ' + linenumber;
+    console.log('JavaScript Error: ' + errMessage);
+
+    // Show user-friendly error message
+    $(function () {
+        toastr.error('An error occurred. Please check the console or report it on <a href="https://github.com/ubershmekel/redditp/issues">GitHub</a>.');
+    });
+};
 
 
 $(function () {
@@ -65,7 +63,7 @@ $(function () {
 
     $("#subredditUrl").text("Loading Reddit Slideshow");
     $("#navboxTitle").text("Loading Reddit Slideshow");
-    
+
     /*var fadeoutWhenIdle = true;
     var setupFadeoutOnIdle = function () {
         $('.fadeOnIdle').fadeTo('fast', 0);
@@ -93,7 +91,7 @@ $(function () {
     //setupFadeoutOnIdle();
 
     var getNextSlideIndex = function (currentIndex, skipCount) {
-        if(typeof skipCount !== "number"){
+        if (typeof skipCount !== "number") {
             var skipCount = 1
         }
         if (!rp.settings.nsfw) {
@@ -114,10 +112,10 @@ $(function () {
         return currentIndex + skipCount;
     };
     function nextSlide(skipCount) {
-        var next = getNextSlideIndex(rp.session.activeIndex,skipCount);
+        var next = getNextSlideIndex(rp.session.activeIndex, skipCount);
         saveHistory(next);
         startAnimation(next);
-    }  
+    }
 
     function prevSlide() {
         var index = rp.session.activeIndex - 1;
@@ -364,7 +362,7 @@ $(function () {
             "isVideo": video
         }
         */
-        if(!item.data.is_gallery){
+        if (!item.data.is_gallery) {
             var pic = embedit.redditItemToPic(item);
             if (!pic) {
                 return;
@@ -376,10 +374,10 @@ $(function () {
             }
             rp.photos.push(pic);
             rp.session.foundOneImage = true;
-            var i = rp.photos.length - 1;   
-            var numberButton = $("<a />").html((i+1)-galleryOffset)
+            var i = rp.photos.length - 1;
+            var numberButton = $("<a />").html((i + 1) - galleryOffset)
                 .data("index", i)
-                .attr("title", rp.photos[i].title)  
+                .attr("title", rp.photos[i].title)
                 .attr("id", "numberButton" + (i + 1))
             if (pic.over18) {
                 numberButton.addClass("over18");
@@ -390,40 +388,40 @@ $(function () {
             numberButton.addClass("numberButton");
             addNumberButton(numberButton);
         } else {
-            const x = (rp.photos.length+1)-galleryOffset
-            galleryOffset+=(item.data.gallery_data.items.length)-1
+            const x = (rp.photos.length + 1) - galleryOffset
+            galleryOffset += (item.data.gallery_data.items.length) - 1
             $.each(item.data.gallery_data.items, function (j, image) {
                 pic = {
                     "title": item.data.title,
-                    "url": "https://i.redd.it/"+image.media_id+"."+(item.data.media_metadata[image.media_id].m).split('/')[1],
+                    "url": "https://i.redd.it/" + image.media_id + "." + (item.data.media_metadata[image.media_id].m).split('/')[1],
                     "data": item.data,
                     "commentsLink": item.data.url,
                     "over18": item.data.over_18,
                     "isVideo": item.data.is_video,
                     "subreddit": item.data.subreddit,
-                    "galleryItem": j+1,
+                    "galleryItem": j + 1,
                     "galleryTotal": item.data.gallery_data.items.length,
                     "userLink": item.data.author,
                     "type": (item.data.media_metadata[image.media_id].m).split('/')[0]
-                }; 
+                };
                 for (i = 0; i < rp.photos.length; i += 1) {
                     if (pic.url === rp.photos[i].url) {
-                        return; 
+                        return;
                     }
-                }   
+                }
                 rp.photos.push(pic);
                 rp.session.foundOneImage = true;
 
-                
+
             });
             var i = rp.photos.length - 1;
             var numberButton = $("<a />").html(x)
-                .data("index", i-(rp.photos[i].galleryItem-1))
+                .data("index", i - (rp.photos[i].galleryItem - 1))
                 .attr("title", rp.photos[i].title)
-                .attr("id", "numberButton" + ((i + 1)-(rp.photos[i].galleryTotal-1)))
+                .attr("id", "numberButton" + ((i + 1) - (rp.photos[i].galleryTotal - 1)))
                 .addClass("numberButton")
                 .addClass("gallery");
-            numberButton.append($("<a />").html("/"+rp.photos[i].galleryTotal).css({fontSize: 10}).addClass("galleryCount"))
+            numberButton.append($("<a />").html("/" + rp.photos[i].galleryTotal).css({ fontSize: 10 }).addClass("galleryCount"))
             if (pic.over18) {
                 numberButton.addClass("over18");
             }
@@ -514,7 +512,7 @@ $(function () {
             case arrow.left:
             case arrow.up:
             case W_KEY:
-                return prevSlide(); 
+                return prevSlide();
             case PAGEDOWN:
             case arrow.right:
             case arrow.down:
@@ -653,13 +651,13 @@ $(function () {
         }
     };
 
-    var toggleNumberButton = async function (imageIndex,turnOn) {
-        if (imageIndex<0){return}   
+    var toggleNumberButton = async function (imageIndex, turnOn) {
+        if (imageIndex < 0) { return }
         var photo = rp.photos[imageIndex]
-        if (!photo.galleryItem){
-            var numberButton = $("#numberButton"+(imageIndex+1));
+        if (!photo.galleryItem) {
+            var numberButton = $("#numberButton" + (imageIndex + 1));
         } else {
-            var numberButton = $("#numberButton"+((imageIndex+1)-(rp.photos[imageIndex].galleryItem-1))); 
+            var numberButton = $("#numberButton" + ((imageIndex + 1) - (rp.photos[imageIndex].galleryItem - 1)));
         }
         if (turnOn) {
             numberButton.addClass('active');
@@ -682,8 +680,8 @@ $(function () {
         $('#navboxLink').attr('href', photo.url).attr('title', photo.title);
         $('#navboxCommentsLink').attr('href', photo.commentsLink).attr('title', "Comments on reddit");
         $('#navboxUser').attr('href', window.location.origin + user).attr('user', "User on reddit");
-        if (photo.galleryItem){
-            $("#navboxGallery").text("Gallery: "+photo.galleryItem+"/"+photo.galleryTotal);
+        if (photo.galleryItem) {
+            $("#navboxGallery").text("Gallery: " + photo.galleryItem + "/" + photo.galleryTotal);
         } else {
             $("#navboxGallery").text("")
         }
@@ -874,12 +872,12 @@ $(function () {
 
         return divNode;
     };
-    var skipGallery = async function () { 
-        photo = rp.photos[rp.session.activeIndex];  
-        if (!photo.data.is_gallery){
+    var skipGallery = async function () {
+        photo = rp.photos[rp.session.activeIndex];
+        if (!photo.data.is_gallery) {
             return
         }
-        var skipCount = (photo.galleryTotal - photo.galleryItem)+1
+        var skipCount = (photo.galleryTotal - photo.galleryItem) + 1
         nextSlide(skipCount)
     };
 
