@@ -1,163 +1,233 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <!--
         https://github.com/ubershmekel/redditp
     -->
     <meta http-equiv="content-type" content="text/html;charset=utf-8" />
     <title>redditP</title>
-    <meta name="description" content="A fullscreen presentation or slide show of reddit. RedditP" />
+    <meta
+      name="description"
+      content="A fullscreen presentation or slide show of reddit. RedditP"
+    />
     <meta name="format-detection" content="telephone=no" />
     <meta name="format-detection" content="date=no" />
     <meta name="format-detection" content="address=no" />
     <link rel="shortcut icon" href="/images/favicon.png" />
 
     <!-- no-referrer because of https://github.com/ubershmekel/redditp/issues/137 -->
-    <meta name="referrer" content="no-referrer">
+    <meta name="referrer" content="no-referrer" />
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
 
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.2/toastr.css" />
-    <style>
-        .tagsyo {
-            text-shadow: 0 2px #00f;
-            transition: opacity 1s;
-        }
-
-        .tagsyo:hover {
-            opacity: 0.5;
-        }
-    </style>
-
-    <script src="https://unpkg.com/jquery@3.4.1/dist/jquery.min.js"
-        integrity="sha384-vk5WoKIaW/vJyUAd9n/wmopsmNhiy+L2Z+SBxGYnUkunIxVxAv/UtMOhba/xskxh"
-        crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/toastr@2.1.4/build/toastr.min.js"
-        integrity="sha384-awkppW2vvGcqchV4/Wqk1nZPrGJakjrkv9gwXzll5JebuFQNSbzeKwYhqFDa/y00"
-        crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"
-        integrity="sha512-MIcFpSPLWmLSof4rgA6hcJ2LHRgT+2mF0sAv66F+R14JTddek4tNk++01LPCuV0BHjaB7DYHyIN97/A39N4MDA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script
+      src="https://unpkg.com/jquery@3.4.1/dist/jquery.min.js"
+      integrity="sha384-vk5WoKIaW/vJyUAd9n/wmopsmNhiy+L2Z+SBxGYnUkunIxVxAv/UtMOhba/xskxh"
+      crossorigin="anonymous"
+    ></script>
+    <script type="text/javascript" src="/js/toast.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.1/dash.all.min.js"
+      integrity="sha512-MIcFpSPLWmLSof4rgA6hcJ2LHRgT+2mF0sAv66F+R14JTddek4tNk++01LPCuV0BHjaB7DYHyIN97/A39N4MDA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <script type="text/javascript" src="/js/jquery.touchwipe.js"></script>
     <script type="text/javascript" src="/js/js.cookie.js"></script>
     <script type="text/javascript" src="/js/ie_hacks.js"></script>
     <script type="text/javascript" src="/js/EmbedIt.js"></script>
     <script type="text/javascript" src="/js/script.js"></script>
-</head>
+  </head>
 
-<body id="page">
-    <div class="prevArrow fadeOnIdle" title="The arrow keys work too" id="prevButton"></div>
-    <div class="nextArrow fadeOnIdle" title="Try the arrow keys too" id="nextButton"></div>
+  <body id="page">
+    <div
+      class="prevArrow fadeOnIdle"
+      title="The arrow keys work too"
+      id="prevButton"
+    ></div>
+    <div
+      class="nextArrow fadeOnIdle"
+      title="Try the arrow keys too"
+      id="nextButton"
+    ></div>
 
-    <div id="controlsDiv" class='navbox clouds fadeOnIdle'>
-        <div class="collapser" data-openstate="open">-</div>
-        <div id="navboxContents">
-            <ul class="nbmenu">
-                <li id="subredditUrl">
-                    <noscript>No javascript, no gain.</noscript>
-                </li>
-                <li>
-                    <a id='navboxCommentsLink' href='#' title='Comments on reddit' target="_blank"
-                        rel="noopener noreferrer">comments</a>
-                </li>
-                <li>
-                    <a id='navboxLink' href='#' title='placeholder' target="_blank" rel="noopener noreferrer">image</a>
-                </li>
-                <li>
-                    <a id='navboxUser' href='#' title='Start user slideshow' target="_blank"
-                        rel="noopener noreferrer">user</a>
-                </li>
-                <li>
-                    <a href="https://github.com/ubershmekel/redditp/blob/master/README.md" title="hotkeys"
-                        target="_blank" rel="noopener noreferrer">readme</a>
-                </li>
-            </ul>
-            <ul class="nbmenu">
-                <li>
-                    <input class="checkbox" type="checkbox" name="autoNextSlide" id="autoNextSlide" value="Auto"
-                        checked />
-                    <label class="checkbox" for="autoNextSlide"> Auto-next</label>
-                    every <input type="text" name="timeToNextSlide" id="timeToNextSlide" inputmode="numeric" value="5"
-                        size="2" /> seconds
-                </li>
-                <li>
-                    <input class="checkbox" type="checkbox" name="nsfw" id="nsfw" value="Auto" checked />
-                    <label class="checkbox over18" for="nsfw"> nsfw</label>
-
-                    <input class="checkbox" type="checkbox" name="sound" id="sound" value="false" />
-                    <label class="checkbox" for="sound"> sound</label>
-
-                    <img src="/images/fullscreen.png" id="fullScreenButton" alt="Fullscreen" />
-                </li>
-            </ul>
-            <div class="numberButtonList">
-                <ul id="allNumberButtons">
-                    <!-- Slide number buttons will be injected by jQuery -->
-                </ul>
-                <ul id="sfwNumberButtons">
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div id="titleDiv" class='navbox clouds'>
-        <div class="collapser" data-openstate="open">-</div>
-        <h2 id='navboxTitle'>
-            <noscript>Javascript is required for redditp to work :(</noscript>
-        </h2>
-        <h3><b id='navboxSubreddit' href="http://www.reddit.com">
-                <noscript>Javascript is required for redditp to work :(</noscript>
-            </b>
-            <a id='navboxGallery' style='padding-left:10px;'>
-            </a>
-        </h3>
-    </div>
-
-    <div id="recommend" style="display:none; text-align: center; margin: 10px; color: rgb(170, 170, 170);">
-        <p>Maybe try these presentations instead:</p>
-        <ul>
-            <li>
-                <a href="/r/earthporn">earthporn</a>
-            </li>
-            <li>
-                <a href="/r/aww">aww</a>
-            </li>
-            <li>
-                <a href="/r/foodporn">foodporn</a>
-            </li>
-            <li>
-                <a href="/r/funny">funny</a>
-            </li>
-            <li>
-                <a href="/r/gonewild">gonewild</a>
-            </li>
-            <li>
-                <a href="/r/spaceporn">spaceporn</a>
-            </li>
-            <li>
-                <a href="/r/gifs">gifs</a>
-            </li>
-            <li>
-                <a href="/r/all">all</a>
-            </li>
-
-            <li>
-                <a id="tagsyo-link" href="https://www.tagsyo.com"><span style="color: #3ee">Tagsyo</span> might have
-                    what
-                    you're looking for...</a>
-            </li>
+    <div id="controlsDiv" class="navbox fadeOnIdle">
+      <div class="collapser" data-openstate="open">-</div>
+      <div id="navboxContents">
+        <ul class="nbmenu">
+          <li id="subredditUrl">
+            <noscript>No javascript, no gain.</noscript>
+          </li>
+          <li>
+            <a
+              id="navboxCommentsLink"
+              href="#"
+              title="Comments on reddit"
+              target="_blank"
+              rel="noopener noreferrer"
+              >comments</a
+            >
+          </li>
+          <li>
+            <a
+              id="navboxLink"
+              href="#"
+              title="placeholder"
+              target="_blank"
+              rel="noopener noreferrer"
+              >image</a
+            >
+          </li>
+          <li>
+            <a
+              id="navboxUser"
+              href="#"
+              title="Start user slideshow"
+              target="_blank"
+              rel="noopener noreferrer"
+              >user</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              title="hotkeys"
+              target="_blank"
+              id="helpButton"
+              aria-label="hotkeys and source link"
+              rel="noopener noreferrer"
+              >help</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              id="navboxAboutCreator"
+              title="About the maker"
+              aria-label="About the maker"
+              >redditp</a
+            >
+          </li>
         </ul>
+        <ul class="nbmenu">
+          <li>
+            <input
+              class="checkbox"
+              type="checkbox"
+              name="autoNextSlide"
+              id="autoNextSlide"
+              value="Auto"
+              checked
+            />
+            <label class="checkbox" for="autoNextSlide"> Auto-next</label>
+            every
+            <input
+              type="text"
+              name="timeToNextSlide"
+              id="timeToNextSlide"
+              inputmode="numeric"
+              value="5"
+              size="2"
+            />
+            seconds
+          </li>
+          <li>
+            <input
+              class="checkbox"
+              type="checkbox"
+              name="nsfw"
+              id="nsfw"
+              value="Auto"
+              checked
+            />
+            <label class="checkbox over18" for="nsfw"> nsfw</label>
+
+            <input
+              class="checkbox"
+              type="checkbox"
+              name="sound"
+              id="sound"
+              value="false"
+            />
+            <label class="checkbox" for="sound"> sound</label>
+
+            <img
+              src="/images/fullscreen.png"
+              id="fullScreenButton"
+              alt="Fullscreen"
+            />
+          </li>
+        </ul>
+        <div class="numberButtonList">
+          <ul id="allNumberButtons">
+            <!-- Slide number buttons will be injected by jQuery -->
+          </ul>
+          <ul id="sfwNumberButtons"></ul>
+        </div>
+      </div>
+    </div>
+    <div id="titleDiv" class="navbox">
+      <div class="collapser" data-openstate="open">-</div>
+      <h2 id="navboxTitle">
+        <noscript>Javascript is required for redditp to work :(</noscript>
+      </h2>
+      <h3>
+        <b id="navboxSubreddit" href="http://www.reddit.com">
+          <noscript>Javascript is required for redditp to work :(</noscript>
+        </b>
+        <a id="navboxGallery" style="padding-left: 10px"> </a>
+      </h3>
     </div>
 
+    <div
+      id="recommend"
+      class="alternatives"
+      style="
+        display: none;
+        text-align: center;
+        margin: 10px;
+        color: rgb(170, 170, 170);
+      "
+    >
+      <p>Maybe try these presentations instead:</p>
+      <ul>
+        <li>
+          <a href="/r/earthporn">earthporn</a>
+        </li>
+        <li>
+          <a href="/r/aww">aww</a>
+        </li>
+        <li>
+          <a href="/r/foodporn">foodporn</a>
+        </li>
+        <li>
+          <a href="/r/funny">funny</a>
+        </li>
+        <li>
+          <a href="/r/gonewild">gonewild</a>
+        </li>
+        <li>
+          <a href="/r/spaceporn">spaceporn</a>
+        </li>
+        <li>
+          <a href="/r/gifs">gifs</a>
+        </li>
+        <li>
+          <a href="/r/all">all</a>
+        </li>
+      </ul>
+
+      <p>
+        Or let the creator know on
+        <a href="https://github.com/ubershmekel">GitHub</a> or
+        <a href="https://x.com/ubershmekel">Twitter/X</a> if there's a problem.
+      </p>
+    </div>
 
     <div id="pictureSlider">
-        <!-- Pictures will be injected by jQuery -->
-        <div>
-            <!-- Empty div to be animated out, do not erase -->
-        </div>
+      <!-- Pictures will be injected by jQuery -->
+      <div>
+        <!-- Empty div to be animated out, do not erase -->
+      </div>
     </div>
-
-    <script type="text/javascript" src="/js/fix-tagsyo-link.js" async></script>
-</body>
-
-
+  </body>
 </html>

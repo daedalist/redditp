@@ -78,8 +78,8 @@ embedit.redGifConvert = function (url, embedFunc) {
     $(
       '<iframe src="' +
         iframeUrl +
-        '" frameborder="0" scrolling="no" width="100%" height="100%" allowfullscreen="" style="position:absolute;"></iframe>'
-    )
+        '" frameborder="0" scrolling="no" width="100%" height="100%" allowfullscreen="" style="position:absolute;"></iframe>',
+    ),
   );
   return true;
 };
@@ -239,18 +239,6 @@ embedit.redGifUrlToId = function (url) {
   return false;
 };
 
-function isImageExtension(url) {
-  var goodExtensions = [".jpg", ".jpeg", ".gif", ".bmp", ".png"];
-  var dotLocation = url.lastIndexOf(".");
-  if (dotLocation < 0) {
-    console.log("skipped no dot: " + url);
-    return false;
-  }
-  var extension = url.substring(dotLocation);
-
-  return goodExtensions.indexOf(extension) >= 0;
-}
-
 embedit.processRedditJson = function (data) {
   var result = {
     children: [],
@@ -281,7 +269,7 @@ embedit.processRedditJson = function (data) {
 
   if (result.children.length === 0) {
     console.log(
-      "What case is this? Does the data have any length? Is this the standard nothing found case? TODO: debug this"
+      "What case is this? Does the data have any length? Is this the standard nothing found case? TODO: debug this",
     );
     result.children = data;
   }
@@ -327,67 +315,77 @@ function decodeEntities(encodedString) {
     });
 }
 
-embedit.transformRedditData = function (pic) {
-  // TODO: convert this to a more functional style
-
-  pic.type = embedit.imageTypes.image;
-  // Replace HTTP with HTTPS on gfycat and imgur to avoid this:
-  //      Mixed Content: The page at 'https://redditp.com/r/gifs' was loaded over HTTPS, but requested an insecure video 'http://i.imgur.com/LzsnbNU.webm'. This content should also be served over HTTPS.
-  var http_prefix = "http://";
-  var https_prefix = "https://";
-  if (pic.url.indexOf("gfycat.com") >= 0) {
+// Preparers: keyed by domain string. Values are either a single prepare function
+// (when no further URL inspection is needed) or an array of {detect?, prepare}
+// objects tried in order (most specific first).
+// URLs that match no domain fall through to an image-extension check in transformRedditData.
+embedit.preparers = {
+  "gfycat.com": function (pic) {
     pic.type = embedit.imageTypes.gfycat;
-    pic.url = pic.url.replace(http_prefix, https_prefix);
-  } else if (pic.url.indexOf("redgifs.com") >= 0) {
+    pic.url = pic.url.replace("http://", "https://");
+    return true;
+  },
+  "redgifs.com": function (pic) {
     pic.type = embedit.imageTypes.redgif;
-    pic.url = pic.url.replace(http_prefix, https_prefix);
-  } else if (pic.url.indexOf("//v.redd.it/") >= 0) {
-    // NOTE DO NOT ADD DOMAINS HERE - MODIFY EMBEDIT.JS instead
-    // NOTE DO NOT ADD DOMAINS HERE - MODIFY EMBEDIT.JS instead
-    // NOTE DO NOT ADD DOMAINS HERE - MODIFY EMBEDIT.JS instead
-    // Sadly, we have to add domains here or they get dropped in the "cannot display url" error below.
-    // Need to redesign this redditp thing.
-    if (pic.data.media) {
-      pic.type = embedit.imageTypes.gifv;
-      pic.url = pic.data.media.reddit_video.fallback_url;
-    } else if (
-      pic.data.crosspost_parent_list &&
-      pic.data.crosspost_parent_list[0].media
-    ) {
-      pic.type = embedit.imageTypes.gifv;
-      pic.url =
-        pic.data.crosspost_parent_list[0].media.reddit_video.fallback_url;
-    } else {
-      // some crossposts don't have a pic.data.media obj?
+    pic.url = pic.url.replace("http://", "https://");
+    return true;
+  },
+  // Note that this `DASH_audio.mp4` is now `DASH_AUDIO_128.mp4`.
+  // You can find it in the `.mpd` file, but I don't want to parse that.
+  // Instead - we'll use `dash.min.js` to create the video element.
+  "v.redd.it": function (pic) {
+    var media =
+      pic.data.media ||
+      (pic.data.crosspost_parent_list &&
+        pic.data.crosspost_parent_list[0] &&
+        pic.data.crosspost_parent_list[0].media);
+    if (!media) {
+      // some crossposts don't have a media obj
       return false;
     }
-    // Note that this `DASH_audio.mp4` is now `DASH_AUDIO_128.mp4`.
-    // You can find it in the `.mpd` file, but I don't want to parse that.
-    // Instead - we'll use `dash.min.js` to create the video element.
+    pic.type = embedit.imageTypes.gifv;
+    pic.url = media.reddit_video.fallback_url;
     pic.sound =
       pic.url.substring(0, pic.url.lastIndexOf("/")) + "/DASH_audio.mp4";
-  } else if (pic.url.search(/^http.*imgur.*gifv?$/) > -1) {
-    pic.type = embedit.imageTypes.gifv;
-    pic.url = pic.url.replace(http_prefix, https_prefix);
-  } else if (pic.url.indexOf("reddit.com/gallery") >= 0) {
-    console.log("GOTCHA!");
-
-    var dataSource;
-    if (pic.data.gallery_data && pic.data.gallery_data.items) {
-      dataSource = pic.data;
-    } else if (
-      pic.data.crosspost_parent_list &&
-      pic.data.crosspost_parent_list[0] &&
-      pic.data.crosspost_parent_list[0].gallery_data &&
-      pic.data.crosspost_parent_list[0].gallery_data.items
-    ) {
-      // Grab the first image from the crosspost parent
-      dataSource = pic.data.crosspost_parent_list[0];
+    // DASH manifest URL for adaptive streaming via dash.js (may be absent on some posts)
+    if (pic.data.secure_media && pic.data.secure_media.reddit_video) {
+      pic.dashUrl = pic.data.secure_media.reddit_video.dash_url;
     }
-
+    return true;
+  },
+  // URLs ending in .gif or .gifv are served as video (webm/mp4).
+  // All other imgur URLs get .jpg appended (imgur serves any extension).
+  // The replace removes an /r/<sub>/ prefix if present, e.g. imgur.com/r/aww/x9q6yW9.
+  "imgur.com": function (pic) {
+    if (/gifv?$/.test(pic.url)) {
+      pic.type = embedit.imageTypes.gifv;
+      pic.url = pic.url.replace("http://", "https://");
+      return true;
+    }
+    if (pic.url.indexOf("/a/") > 0 || pic.url.indexOf("/gallery/") > 0) {
+      return false; // albums not supported
+    }
+    pic.url = pic.url.replace(/r\/[^ /]+\/(\w+)/, "$1") + ".jpg";
+    pic.type = embedit.imageTypes.image;
+    return true;
+  },
+  "reddit.com": function (pic) {
+    if (pic.url.indexOf("/gallery/") < 0) return false;
+    var dataSource = pic.data;
+    if (!dataSource.gallery_data || !dataSource.gallery_data.items) {
+      if (
+        pic.data.crosspost_parent_list &&
+        pic.data.crosspost_parent_list[0] &&
+        pic.data.crosspost_parent_list[0].gallery_data &&
+        pic.data.crosspost_parent_list[0].gallery_data.items
+      ) {
+        dataSource = pic.data.crosspost_parent_list[0];
+      } else {
+        return false;
+      }
+    }
     var firstItemId = dataSource.gallery_data.items[0].media_id;
     var encodedUrl = dataSource.media_metadata[firstItemId]["s"]["u"];
-
     pic.type = embedit.imageTypes.image;
     if (encodedUrl === undefined) {
       // some posts don't have the u key, but have gif and mp4 keys
@@ -395,49 +393,157 @@ embedit.transformRedditData = function (pic) {
       pic.type = embedit.imageTypes.gifv;
     }
     pic.url = decodeEntities(encodedUrl);
-    console.log(pic.url);
-  } else if (isImageExtension(pic.url)) {
-    // simple image
-  } else {
-    var betterUrl = tryConvertUrl(pic.url);
-    if (betterUrl !== "") {
-      pic.url = betterUrl;
-    } else {
-      if (window.debug) {
-        console.log("cannot display url as image: " + pic.url);
-      }
-      return false;
-    }
-  }
-
-  return true;
+    return true;
+  },
 };
 
-var tryConvertUrl = function (url) {
-  if (url.indexOf("imgur.com") > 0 || url.indexOf("/gallery/") > 0) {
-    // special cases with imgur
-
-    if (url.indexOf("gifv") >= 0) {
-      if (url.indexOf("i.") === 0) {
-        url = url.replace("imgur.com", "i.imgur.com");
-      }
-      return url.replace(".gifv", ".gif");
-    }
-
-    if (url.indexOf("/a/") > 0 || url.indexOf("/gallery/") > 0) {
-      // albums aren't supported yet
-      //log('Unsupported gallery: ' + url);
-      return "";
-    }
-
-    // imgur is really nice and serves the image with whatever extension
-    // you give it. '.jpg' is arbitrary
-    // regexp removes /r/<sub>/ prefix if it exists
-    // E.g. http://imgur.com/r/aww/x9q6yW9
-    return url.replace(/r\/[^ /]+\/(\w+)/, "$1") + ".jpg";
+embedit.transformRedditData = function (pic) {
+  pic.type = embedit.imageTypes.image;
+  var hostname;
+  try {
+    hostname = new URL(pic.url).hostname;
+  } catch (e) {
+    hostname = "";
+  }
+  // Walk up subdomain levels: "i.imgur.com" → "imgur.com", etc.
+  while (hostname) {
+    var prepare = embedit.preparers[hostname];
+    if (prepare) return prepare(pic);
+    var dot = hostname.indexOf(".");
+    if (dot < 0) break;
+    hostname = hostname.slice(dot + 1);
   }
 
-  return "";
+  // No domain matched — fall back to bare image extension
+  if (/\.(png|jpg|jpeg|gif|bmp)$/i.test(pic.url)) {
+    pic.type = embedit.imageTypes.image;
+    return true;
+  }
+
+  if (window.debug) {
+    console.log("cannot display url as image: " + pic.url);
+  }
+  return false;
+};
+
+// Convert a reddit gallery item (is_gallery: true) into an ordered array of
+// pic objects, one per image in the gallery.
+embedit.redditGalleryToPics = function (item) {
+  var pics = [];
+  var total = item.data.gallery_data.items.length;
+  $.each(item.data.gallery_data.items, function (j, image) {
+    var mediaId = image.media_id;
+    var mime = item.data.media_metadata[mediaId].m; // e.g. "image/jpeg"
+    var extension = mime.split("/")[1]; // "jpeg"
+    var mimePrefix = mime.split("/")[0]; // "image" or "video"
+    pics.push({
+      title: item.data.title,
+      url: "https://i.redd.it/" + mediaId + "." + extension,
+      data: item.data,
+      commentsLink: item.data.url,
+      over18: item.data.over_18,
+      subreddit: item.data.subreddit,
+      galleryItem: j + 1,
+      galleryTotal: total,
+      userLink: item.data.author,
+      type: mimePrefix,
+    });
+  });
+  return pics;
+};
+
+// Try to fetch subredditUrl as a self-contained album (imgur, etc.).
+// Returns true and calls onPics(pics) if the URL is a recognised album type.
+// Returns false without calling anything if it is not — the caller should then
+// fall back to fetching a reddit listing.
+embedit.tryFetchAlbum = function (subredditUrl, onPics, onError) {
+  if (subredditUrl.indexOf("/imgur") === 0) {
+    embedit._fetchImgurAlbum(subredditUrl, onPics, onError);
+    return true;
+  }
+  return false;
+};
+
+embedit._fetchImgurAlbum = function (subredditUrl, onPics, onError) {
+  var albumID = subredditUrl.match(/.*\/(.+?)$/)[1];
+  $.ajax({
+    url: "https://api.imgur.com/3/album/" + albumID,
+    dataType: "json",
+    success: function (data) {
+      var pics = [];
+      $.each(data.data.images, function (_i, img) {
+        var pic = {
+          url: img.link,
+          title: img.title || "",
+          over18: !!img.nsfw,
+          commentsLink: "",
+          userLink: "",
+          subreddit: "",
+          data: {},
+        };
+        if (embedit.transformRedditData(pic)) {
+          pics.push(pic);
+        }
+      });
+      onPics(pics);
+    },
+    error: onError,
+    404: onError,
+    timeout: 5000,
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader("Authorization", "Client-ID f2edd1ef8e66eaf");
+    },
+  });
+};
+
+// Render a pic into divNode.  Handles plain images (CSS background-image) and
+// all embedded media (video, iframe, etc.) in one place so callers need no
+// knowledge of pic.type or domain-specific URL patterns.
+embedit.render = function (photo, divNode, onError) {
+  if (photo.type === embedit.imageTypes.image) {
+    // Trigger a browser fetch so the image is warm in cache; CSS background-image
+    // alone does not preload in Chrome.
+    if (typeof Image !== "undefined") {
+      var img = new Image();
+      img.src = photo.url;
+    }
+    divNode.css({
+      display: "none",
+      "background-image": "url(" + photo.url + ")",
+      "background-repeat": "no-repeat",
+      "background-size": "contain",
+      "background-position": "center",
+    });
+    return;
+  }
+
+  embedit.embed(photo.url, function (elem) {
+    if (!elem) {
+      if (onError) onError();
+      return;
+    }
+    // v.redd.it: embedit produces a plain <video src="fallback"> but DASH.js
+    // must own the element.  Use a bare video placeholder; embedit.initDash()
+    // initialises the DASH player after the div reaches the DOM.
+    if (photo.url.match(/\/\/v\.redd\.it\//)) {
+      elem = $('<video autoplay playsinline loop controls="true" />');
+    }
+    divNode.append(elem);
+    elem.attr({ playsinline: "" });
+    elem.width("100%").height("100%");
+    if (elem[0] && elem[0].pause) {
+      elem[0].pause();
+    }
+  });
+};
+
+// Initialise the DASH.js player for a v.redd.it slide.  Must be called after
+// the divNode containing the <video> element has been inserted into the DOM.
+embedit.initDash = function (photo) {
+  if (!photo.dashUrl) return;
+  if (typeof dashjs === "undefined") return;
+  var player = dashjs.MediaPlayer().create();
+  player.initialize(document.querySelector("video"), photo.dashUrl, true);
 };
 
 //////////////////////////////////////////////////////////
